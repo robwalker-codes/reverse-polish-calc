@@ -54,6 +54,8 @@ export class ApiService {
   }
 
   clear(request: ClearRequestDto): Observable<string> {
-    return this.http.post<{ cleared: string }>(`${this.baseUrl}/clear`, request).pipe(map((x) => x.cleared));
+    return this.http
+      .post<{ cleared: string }>(`${this.baseUrl}/clear`, request)
+      .pipe(map((response: { cleared: string }) => response.cleared));
   }
 }
