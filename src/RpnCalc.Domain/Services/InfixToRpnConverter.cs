@@ -7,8 +7,8 @@ public sealed class InfixToRpnConverter
 {
     public RpnExpression Convert(IReadOnlyList<Token> tokens)
     {
-        List<Token> output = new List<Token>();
-        Stack<Token> operators = new Stack<Token>();
+        List<Token> output = new();
+        Stack<Token> operators = new();
         foreach (Token token in tokens)
         {
             HandleToken(token, output, operators);

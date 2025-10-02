@@ -10,9 +10,9 @@ public sealed record EvaluateSettings(int? Precision, MidpointRounding? Rounding
 {
     public CalcSettings ToCalcSettings()
     {
-        Precision precision = new Precision(Precision ?? CalcSettings.Default.Precision.Digits);
+        Precision precision = new(Precision ?? CalcSettings.Default.Precision.Digits);
         MidpointRounding rounding = Rounding ?? CalcSettings.Default.Rounding;
-        return new CalcSettings(precision, rounding);
+        return new(precision, rounding);
     }
 }
 
@@ -22,6 +22,6 @@ public sealed record EvaluateResponse(string Result, ExpressionMode Mode, IReadO
     {
         List<string> rpn = result.RpnTokens.Select(token => token.Text).ToList();
         string formatted = result.Value.ToString(CultureInfo.InvariantCulture);
-        return new EvaluateResponse(formatted, mode, rpn, result.Trace);
+        return new(formatted, mode, rpn, result.Trace);
     }
 }

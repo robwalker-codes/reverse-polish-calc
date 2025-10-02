@@ -52,7 +52,7 @@ public sealed class EvaluateExpressionCommandHandler
 
     private static RpnExpression ParseRpn(string expression)
     {
-        List<Token> tokens = new List<Token>();
+        List<Token> tokens = new();
         string[] span = expression.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         foreach (string part in span)
         {

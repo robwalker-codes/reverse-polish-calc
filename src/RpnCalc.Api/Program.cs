@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.AspNetCore.OpenApi;
 using RpnCalc.Api.Contracts;
 using RpnCalc.Api.Infrastructure;
 using RpnCalc.Application.Abstractions;
@@ -16,7 +15,6 @@ using RpnCalc.Domain.ValueObjects;
 using RpnCalc.Infrastructure.Memory;
 using RpnCalc.Infrastructure.Time;
 using Serilog;
-using System.Threading.RateLimiting;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, configuration) =>
@@ -27,14 +25,13 @@ builder.Services.AddExceptionHandler<PassthroughExceptionHandler>();
 
 builder.Services.AddRateLimiter(options =>
 {
-    options.GlobalLimiter = RateLimitPartition.GetFixedWindowLimiter(
-        _ => "global",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            AutoReplenishment = true,
-            PermitLimit = 30,
-            Window = TimeSpan.FromSeconds(60)
-        });
+    options.AddFixedWindowLimiter("global", limiterOptions =>
+    {
+        limiterOptions.AutoReplenishment = true;
+        limiterOptions.PermitLimit = 30;
+        limiterOptions.Window = TimeSpan.FromSeconds(60);
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
 builder.Services.AddCors(policy =>
@@ -60,7 +57,6 @@ builder.Services.AddScoped<ClearCommandHandler>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddOpenApi();
 
 builder.Services.AddApiVersioning(options =>
 {
@@ -95,7 +91,7 @@ v1.MapPost("/calc/evaluate", async (EvaluateRequest request, EvaluateExpressionC
 {
     return await HandleAsync(() =>
     {
-        EvaluateExpressionCommand command = new EvaluateExpressionCommand(
+        EvaluateExpressionCommand command = new(
             request.Expression,
             request.Mode,
             request.ReturnTrace,
@@ -103,45 +99,45 @@ v1.MapPost("/calc/evaluate", async (EvaluateRequest request, EvaluateExpressionC
         EvaluationResult result = handler.Handle(command);
         return Results.Ok(EvaluateResponse.From(result, request.Mode));
     });
-}).WithOpenApi();
+});
 
 v1.MapPost("/calc/press", async (KeyPressRequest request, ProcessKeysCommandHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        ProcessKeysCommand command = new ProcessKeysCommand(request.Keys, request.Mode, request.ReturnTrace, request.Settings?.ToCalcSettings());
+        ProcessKeysCommand command = new(request.Keys, request.Mode, request.ReturnTrace, request.Settings?.ToCalcSettings());
         EvaluationResult result = handler.Handle(command);
         return Results.Ok(EvaluateResponse.From(result, request.Mode));
     });
-}).WithOpenApi();
+});
 
 v1.MapGet("/memory", async (string sessionId, GetMemoryQueryHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        decimal value = handler.Handle(new GetMemoryQuery(sessionId));
+        decimal value = handler.Handle(new(sessionId));
         return Results.Ok(new { sessionId, value });
     });
-}).WithOpenApi();
+});
 
 v1.MapPost("/memory", async (MemoryRequest request, ApplyMemoryCommandHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        ApplyMemoryCommand command = new ApplyMemoryCommand(request.SessionId, request.Command.ToCommand(), request.Value);
+        ApplyMemoryCommand command = new(request.SessionId, request.Command.ToCommand(), request.Value);
         decimal value = handler.Handle(command);
         return Results.Ok(new { request.SessionId, value });
     });
-}).WithOpenApi();
+});
 
 v1.MapPost("/clear", async (ClearRequest request, ClearCommandHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        bool response = handler.Handle(new ClearCommand(request.Scope.ToScope()));
+        string response = handler.Handle(new(request.Scope.ToScope()));
         return Results.Ok(new { cleared = response });
     });
-}).WithOpenApi();
+});
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "healthy" }));
 app.MapGet("/healthz/ready", (IClock clock) => Results.Ok(new { status = "ready", timestamp = clock.UtcNow }));

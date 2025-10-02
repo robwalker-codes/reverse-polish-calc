@@ -15,8 +15,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Asp.Versioning.Http" />
     <PackageReference Include="Asp.Versioning.Mvc" />
-    <PackageReference Include="Microsoft.AspNetCore.RateLimiting" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../RpnCalc.Application/RpnCalc.Application.csproj" />

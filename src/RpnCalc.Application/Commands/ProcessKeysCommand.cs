@@ -30,7 +30,7 @@ public sealed class ProcessKeysCommandHandler
             return new EvaluationResult(0m, Array.Empty<Token>(), Array.Empty<string>());
         }
 
-        EvaluateExpressionCommand evaluationCommand = new EvaluateExpressionCommand(streamResult.Expression, command.Mode, command.ReturnTrace, command.Settings);
+        EvaluateExpressionCommand evaluationCommand = new(streamResult.Expression, command.Mode, command.ReturnTrace, command.Settings);
         return _evaluator.Handle(evaluationCommand);
     }
 }

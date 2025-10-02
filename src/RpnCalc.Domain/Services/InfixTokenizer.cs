@@ -8,7 +8,7 @@ public sealed class InfixTokenizer
 {
     public IReadOnlyList<Token> Tokenize(InfixExpression expression)
     {
-        List<Token> builder = new List<Token>();
+        List<Token> builder = new();
         ReadOnlySpan<char> span = expression.Expression.AsSpan();
         int index = 0;
         while (index < span.Length)
@@ -86,7 +86,7 @@ public sealed class InfixTokenizer
             return false;
         }
 
-        bool isUnary = IsUnary(target);
+        bool isUnary = IsUnary((IReadOnlyList<Token>)target);
         target.Add(isUnary ? OperatorCatalog.GetUnary(symbol) : OperatorCatalog.GetBinary(symbol));
         index++;
         return true;
