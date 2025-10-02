@@ -128,8 +128,8 @@ export class CalculatorComponent implements OnInit {
 
   private applyResponse(response: EvaluateResponseDto): void {
     this.display = response.result;
-    this.rpn = response.rpn;
-    this.trace = response.trace;
+    this.rpn = response.rpn ?? [];
+    this.trace = response.trace ?? [];
     this.loadMemory();
   }
 
