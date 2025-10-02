@@ -1,0 +1,79 @@
+<section class="calculator" aria-label="Calculator">
+  <div class="mode-toggle" role="radiogroup" aria-label="Mode selection">
+    <button
+      type="button"
+      class="mode-button"
+      [class.active]="mode === 'Infix'"
+      (click)="toggleMode('Infix')"
+      role="radio"
+      [attr.aria-checked]="mode === 'Infix'"
+    >
+      Standard
+    </button>
+    <button
+      type="button"
+      class="mode-button"
+      [class.active]="mode === 'Rpn'"
+      (click)="toggleMode('Rpn')"
+      role="radio"
+      [attr.aria-checked]="mode === 'Rpn'"
+    >
+      RPN
+    </button>
+  </div>
+
+  <div class="display" aria-live="polite">
+    <div class="memory-indicator" aria-hidden="true">{{ memory !== 0 ? 'M' : '' }}</div>
+    <div class="expression">{{ rpn.join(' ') }}</div>
+    <div class="result">{{ display }}</div>
+  </div>
+
+  <div class="keypad" role="group" aria-label="Memory keys">
+    <button
+      *ngFor="let memoryKey of memoryButtons"
+      type="button"
+      (click)="onMemoryPress(memoryKey)"
+      class="key memory"
+      [attr.aria-label]="memoryKey"
+    >
+      {{ memoryKey }}
+    </button>
+  </div>
+
+  <div class="keypad" role="group" aria-label="Control keys">
+    <button *ngFor="let control of controls" type="button" class="key control" (click)="onControlPress(control)">
+      {{ control }}
+    </button>
+  </div>
+
+  <div class="keypad" role="group" aria-label="Digits">
+    <button *ngFor="let digit of digits" type="button" class="key digit" (click)="onDigitPress(digit)">
+      {{ digit }}
+    </button>
+  </div>
+
+  <div class="keypad" role="group" aria-label="Operators">
+    <button *ngFor="let op of operators" type="button" class="key operator" (click)="onOperatorPress(op)">
+      {{ op }}
+    </button>
+    <ng-container *ngIf="mode === 'Infix'">
+      <button *ngFor="let extra of infixExtras" type="button" class="key operator" (click)="onOperatorPress(extra)">
+        {{ extra }}
+      </button>
+    </ng-container>
+  </div>
+
+  <div class="precision">
+    <label for="precision">Precision</label>
+    <input id="precision" type="number" [(ngModel)]="precision" min="1" max="28" />
+  </div>
+
+  <div class="trace" *ngIf="trace.length">
+    <h2>Trace</h2>
+    <ul>
+      <li *ngFor="let item of trace">{{ item }}</li>
+    </ul>
+  </div>
+
+  <div class="error" *ngIf="error" role="alert">{{ error }}</div>
+</section>
