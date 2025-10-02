@@ -1,0 +1,17 @@
+.app-shell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+.app-header {
+  padding: 1.5rem 2rem;
+  background: rgba(31, 41, 55, 0.8);
+  backdrop-filter: blur(6px);
+}
+
+.app-content {
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+}
