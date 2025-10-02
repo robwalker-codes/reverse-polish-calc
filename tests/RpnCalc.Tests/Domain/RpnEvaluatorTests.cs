@@ -1,4 +1,5 @@
 using FluentAssertions;
+using RpnCalc.Domain.Exceptions;
 using RpnCalc.Domain.Services;
 using RpnCalc.Domain.ValueObjects;
 using Xunit;
