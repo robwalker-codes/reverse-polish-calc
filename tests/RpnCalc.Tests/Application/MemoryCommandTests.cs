@@ -11,11 +11,11 @@ public sealed class MemoryCommandTests
     [Fact]
     public void ApplyMemory_ShouldStoreValue()
     {
-        var store = new FakeMemoryStore();
-        var handler = new ApplyMemoryCommandHandler(store);
-        var command = new ApplyMemoryCommand("session", MemoryCommandType.Store, 5m);
+        FakeMemoryStore store = new FakeMemoryStore();
+        ApplyMemoryCommandHandler handler = new ApplyMemoryCommandHandler(store);
+        ApplyMemoryCommand command = new ApplyMemoryCommand("session", MemoryCommandType.Store, 5m);
 
-        var result = handler.Handle(command);
+        decimal result = handler.Handle(command);
 
         result.Should().Be(5m);
         store.LastSaved.Should().Be(5m);

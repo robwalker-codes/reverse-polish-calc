@@ -15,7 +15,7 @@ public static class OperatorCatalog
 
     public static Operator GetBinary(string symbol)
     {
-        return Operators.TryGetValue(symbol, out var op)
+        return Operators.TryGetValue(symbol, out Operator? op)
             ? op
             : throw new ArgumentException($"Unsupported operator '{symbol}'.", nameof(symbol));
     }
@@ -44,7 +44,7 @@ public static class OperatorCatalog
 
     private static decimal Power(decimal left, decimal right)
     {
-        var result = Math.Pow((double)left, (double)right);
+        double result = Math.Pow((double)left, (double)right);
         return decimal.Parse(result.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
     }
 }

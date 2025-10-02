@@ -7,9 +7,9 @@ public sealed class RpnEvaluator
 {
     public EvaluationResult Evaluate(RpnExpression expression, CalcSettings settings, bool includeTrace)
     {
-        var stack = new Stack<decimal>();
-        var trace = includeTrace ? new List<string>() : new List<string>();
-        foreach (var token in expression.Tokens)
+        Stack<decimal> stack = new Stack<decimal>();
+        List<string> trace = new List<string>();
+        foreach (Token token in expression.Tokens)
         {
             EvaluateToken(token, stack, settings, trace, includeTrace);
         }
@@ -19,7 +19,7 @@ public sealed class RpnEvaluator
             throw new EvaluationException("Expression evaluation ended with unexpected stack state.");
         }
 
-        var value = Round(stack.Pop(), settings);
+        decimal value = Round(stack.Pop(), settings);
         return new EvaluationResult(value, expression.Tokens, trace);
     }
 
@@ -36,7 +36,7 @@ public sealed class RpnEvaluator
 
     private static void PushNumber(decimal value, Stack<decimal> stack, CalcSettings settings, ICollection<string> trace, bool includeTrace)
     {
-        var rounded = Round(value, settings);
+        decimal rounded = Round(value, settings);
         stack.Push(rounded);
         if (includeTrace)
         {
@@ -58,8 +58,8 @@ public sealed class RpnEvaluator
     private static void ApplyUnary(Operator op, Stack<decimal> stack, CalcSettings settings, ICollection<string> trace, bool includeTrace)
     {
         EnsureStack(stack, 1, op.Symbol);
-        var value = stack.Pop();
-        var result = Round(op.ApplyUnary(value), settings);
+        decimal value = stack.Pop();
+        decimal result = Round(op.ApplyUnary(value), settings);
         stack.Push(result);
         if (includeTrace)
         {
@@ -70,9 +70,9 @@ public sealed class RpnEvaluator
     private static void ApplyBinary(Operator op, Stack<decimal> stack, CalcSettings settings, ICollection<string> trace, bool includeTrace)
     {
         EnsureStack(stack, 2, op.Symbol);
-        var right = stack.Pop();
-        var left = stack.Pop();
-        var result = Round(op.ApplyBinary(left, right), settings);
+        decimal right = stack.Pop();
+        decimal left = stack.Pop();
+        decimal result = Round(op.ApplyBinary(left, right), settings);
         stack.Push(result);
         if (includeTrace)
         {

@@ -7,9 +7,9 @@ public sealed class InfixToRpnConverter
 {
     public RpnExpression Convert(IReadOnlyList<Token> tokens)
     {
-        var output = new List<Token>();
-        var operators = new Stack<Token>();
-        foreach (var token in tokens)
+        List<Token> output = new();
+        Stack<Token> operators = new();
+        foreach (Token token in tokens)
         {
             HandleToken(token, output, operators);
         }
@@ -37,7 +37,7 @@ public sealed class InfixToRpnConverter
 
     private static void PushOperator(Operator current, ICollection<Token> output, Stack<Token> operators)
     {
-        while (operators.TryPeek(out var top) && top is Operator topOperator && ShouldPop(topOperator, current))
+        while (operators.TryPeek(out Token? top) && top is Operator topOperator && ShouldPop(topOperator, current))
         {
             output.Add(operators.Pop());
         }
@@ -75,7 +75,7 @@ public sealed class InfixToRpnConverter
     {
         while (operators.Count > 0)
         {
-            var token = operators.Pop();
+            Token token = operators.Pop();
             if (token is Parenthesis opening)
             {
                 if (!opening.IsOpening)
@@ -96,7 +96,7 @@ public sealed class InfixToRpnConverter
     {
         while (operators.Count > 0)
         {
-            var token = operators.Pop();
+            Token token = operators.Pop();
             if (token is Parenthesis)
             {
                 throw new ConversionException("Unbalanced parentheses detected.");

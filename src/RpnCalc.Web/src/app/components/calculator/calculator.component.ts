@@ -1,6 +1,6 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { ApiService } from '../../services/api.service';
-import { EvaluateResponseDto, MemoryRequestDto } from '../../models';
+import { EvaluateResponseDto, MemoryRequestDto, MemoryResponseDto } from '../../models';
 
 type Mode = 'Infix' | 'Rpn';
 
@@ -68,13 +68,13 @@ export class CalculatorComponent implements OnInit {
     };
 
     this.api.applyMemory(payload).subscribe({
-      next: (response) => {
+      next: (response: MemoryResponseDto) => {
         this.memory = response.value;
         if (button === 'MR') {
           this.display = response.value.toString();
         }
       },
-      error: (err) => this.showError(err)
+      error: (err: unknown) => this.showError(err)
     });
   }
 
@@ -113,8 +113,8 @@ export class CalculatorComponent implements OnInit {
     };
 
     this.api.press(request).subscribe({
-      next: (response) => this.applyResponse(response),
-      error: (err) => this.showError(err)
+      next: (response: EvaluateResponseDto) => this.applyResponse(response),
+      error: (err: unknown) => this.showError(err)
     });
 
     if (value === 'C' || value === 'CE') {
@@ -128,15 +128,15 @@ export class CalculatorComponent implements OnInit {
 
   private applyResponse(response: EvaluateResponseDto): void {
     this.display = response.result;
-    this.rpn = response.rpn;
-    this.trace = response.trace;
+    this.rpn = response.rpn ?? [];
+    this.trace = response.trace ?? [];
     this.loadMemory();
   }
 
   private showError(error: unknown): void {
     if (error && typeof error === 'object' && 'error' in error) {
-      const detail = (error as any).error?.detail ?? 'Unexpected error';
-      this.error = detail;
+      const candidate = error as { error?: { detail?: string } };
+      this.error = candidate.error?.detail ?? 'Unexpected error';
       return;
     }
 
@@ -157,8 +157,12 @@ export class CalculatorComponent implements OnInit {
 
   private loadMemory(): void {
     this.api.getMemory().subscribe({
-      next: (response) => (this.memory = response.value),
-      error: () => (this.memory = 0)
+      next: (response: MemoryResponseDto) => {
+        this.memory = response.value;
+      },
+      error: () => {
+        this.memory = 0;
+      }
     });
   }
 }

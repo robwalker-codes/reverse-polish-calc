@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace RpnCalc.Domain.ValueObjects;
 
 public enum TokenType
@@ -16,7 +18,7 @@ public sealed record NumberLiteral(decimal Value, string Literal) : Token(TokenT
 {
     public static NumberLiteral From(decimal value, int precision)
     {
-        var literal = value.ToString($"F{precision}").TrimEnd('0').TrimEnd('.');
+        string literal = value.ToString($"F{precision}", CultureInfo.InvariantCulture).TrimEnd('0').TrimEnd('.');
         return new NumberLiteral(value, literal);
     }
 }

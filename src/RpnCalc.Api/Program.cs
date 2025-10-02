@@ -1,10 +1,12 @@
-using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
+using RpnCalc.Api.Contracts;
+using RpnCalc.Api.Infrastructure;
 using RpnCalc.Application.Abstractions;
 using RpnCalc.Application.Commands;
 using RpnCalc.Application.ValueObjects;
@@ -15,7 +17,7 @@ using RpnCalc.Infrastructure.Memory;
 using RpnCalc.Infrastructure.Time;
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration).WriteTo.Console());
 
@@ -24,14 +26,13 @@ builder.Services.AddExceptionHandler<PassthroughExceptionHandler>();
 
 builder.Services.AddRateLimiter(options =>
 {
-    options.GlobalLimiter = RateLimitPartition.GetFixedWindowLimiter(
-        _ => "global",
-        _ => new FixedWindowRateLimiterOptions
-        {
-            AutoReplenishment = true,
-            PermitLimit = 30,
-            Window = TimeSpan.FromSeconds(60)
-        });
+    options.AddFixedWindowLimiter("global", limiterOptions =>
+    {
+        limiterOptions.AutoReplenishment = true;
+        limiterOptions.PermitLimit = 30;
+        limiterOptions.Window = TimeSpan.FromSeconds(60);
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
 builder.Services.AddCors(policy =>
@@ -68,10 +69,11 @@ builder.Services.AddApiVersioning(options =>
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    options.SerializerOptions.PropertyNamingPolicy = null;
+    options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.SerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseRateLimiter();
@@ -84,60 +86,60 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-var api = app.MapGroup("/api").RequireRateLimiting("global");
-var v1 = api.MapGroup("/v1");
+RouteGroupBuilder api = app.MapGroup("/api").RequireRateLimiting("global");
+RouteGroupBuilder v1 = api.MapGroup("/v1");
 
 v1.MapPost("/calc/evaluate", async (EvaluateRequest request, EvaluateExpressionCommandHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        var command = new EvaluateExpressionCommand(
+        EvaluateExpressionCommand command = new(
             request.Expression,
             request.Mode,
             request.ReturnTrace,
             request.Settings?.ToCalcSettings());
-        var result = handler.Handle(command);
+        EvaluationResult result = handler.Handle(command);
         return Results.Ok(EvaluateResponse.From(result, request.Mode));
     });
-}).WithOpenApi();
+});
 
 v1.MapPost("/calc/press", async (KeyPressRequest request, ProcessKeysCommandHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        var command = new ProcessKeysCommand(request.Keys, request.Mode, request.ReturnTrace, request.Settings?.ToCalcSettings());
-        var result = handler.Handle(command);
+        ProcessKeysCommand command = new(request.Keys, request.Mode, request.ReturnTrace, request.Settings?.ToCalcSettings());
+        EvaluationResult result = handler.Handle(command);
         return Results.Ok(EvaluateResponse.From(result, request.Mode));
     });
-}).WithOpenApi();
+});
 
 v1.MapGet("/memory", async (string sessionId, GetMemoryQueryHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        var value = handler.Handle(new GetMemoryQuery(sessionId));
+        decimal value = handler.Handle(new(sessionId));
         return Results.Ok(new { sessionId, value });
     });
-}).WithOpenApi();
+});
 
 v1.MapPost("/memory", async (MemoryRequest request, ApplyMemoryCommandHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        var command = new ApplyMemoryCommand(request.SessionId, request.Command.ToCommand(), request.Value);
-        var value = handler.Handle(command);
+        ApplyMemoryCommand command = new(request.SessionId, request.Command.ToCommand(), request.Value);
+        decimal value = handler.Handle(command);
         return Results.Ok(new { request.SessionId, value });
     });
-}).WithOpenApi();
+});
 
 v1.MapPost("/clear", async (ClearRequest request, ClearCommandHandler handler) =>
 {
     return await HandleAsync(() =>
     {
-        var response = handler.Handle(new ClearCommand(request.Scope.ToScope()));
+        string response = handler.Handle(new(request.Scope.ToScope()));
         return Results.Ok(new { cleared = response });
     });
-}).WithOpenApi();
+});
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "healthy" }));
 app.MapGet("/healthz/ready", (IClock clock) => Results.Ok(new { status = "ready", timestamp = clock.UtcNow }));
@@ -164,94 +166,3 @@ static Task<IResult> HandleAsync(Func<IResult> action)
     }
 }
 
-sealed class PassthroughExceptionHandler : IExceptionHandler
-{
-    public ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
-    {
-        return ValueTask.FromResult(false);
-    }
-}
-
-public sealed record EvaluateRequest(
-    string Expression,
-    ExpressionMode Mode,
-    bool ReturnTrace,
-    EvaluateSettings? Settings,
-    string? SessionId);
-
-public sealed record KeyPressRequest(
-    IReadOnlyList<string> Keys,
-    ExpressionMode Mode,
-    bool ReturnTrace,
-    EvaluateSettings? Settings,
-    string? SessionId);
-
-public sealed record MemoryRequest(string SessionId, MemoryCommand Command, decimal? Value);
-
-public sealed record ClearRequest(ClearScopeDto Scope);
-
-public sealed record EvaluateSettings(int? Precision, MidpointRounding? Rounding)
-{
-    public CalcSettings ToCalcSettings()
-    {
-        var precision = new Precision(Precision ?? CalcSettings.Default.Precision.Digits);
-        var rounding = Rounding ?? CalcSettings.Default.Rounding;
-        return new CalcSettings(precision, rounding);
-    }
-}
-
-public enum MemoryCommand
-{
-    MC,
-    MR,
-    MS,
-    MPlus,
-    MMinus
-}
-
-public enum ClearScopeDto
-{
-    CE,
-    C,
-    BACKSPACE
-}
-
-public sealed record EvaluateResponse(string Result, ExpressionMode Mode, IReadOnlyList<string> Rpn, IReadOnlyList<string> Trace)
-{
-    public static EvaluateResponse From(EvaluationResult result, ExpressionMode mode)
-    {
-        var rpn = result.RpnTokens.Select(t => t.Text).ToList();
-        var formatted = result.Value.ToString(CultureInfo.InvariantCulture);
-        return new EvaluateResponse(formatted, mode, rpn, result.Trace);
-    }
-}
-
-public static class MemoryCommandExtensions
-{
-    public static MemoryCommandType ToCommand(this MemoryCommand command)
-    {
-        return command switch
-        {
-            MemoryCommand.MC => MemoryCommandType.Clear,
-            MemoryCommand.MR => MemoryCommandType.Recall,
-            MemoryCommand.MS => MemoryCommandType.Store,
-            MemoryCommand.MPlus => MemoryCommandType.Add,
-            MemoryCommand.MMinus => MemoryCommandType.Subtract,
-            _ => throw new ArgumentOutOfRangeException(nameof(command))
-        };
-    }
-}
-
-public static class ClearScopeExtensions
-{
-    public static ClearScope ToScope(this ClearScopeDto scope)
-    {
-        return scope switch
-        {
-            ClearScopeDto.CE => ClearScope.Entry,
-            ClearScopeDto.C => ClearScope.All,
-            ClearScopeDto.BACKSPACE => ClearScope.Backspace,
-            _ => throw new ArgumentOutOfRangeException(nameof(scope))
-        };
-    }
-}
