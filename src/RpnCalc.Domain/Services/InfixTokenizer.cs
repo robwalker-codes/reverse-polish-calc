@@ -8,9 +8,9 @@ public sealed class InfixTokenizer
 {
     public IReadOnlyList<Token> Tokenize(InfixExpression expression)
     {
-        var builder = new List<Token>();
-        var span = expression.Expression.AsSpan();
-        var index = 0;
+        List<Token> builder = new List<Token>();
+        ReadOnlySpan<char> span = expression.Expression.AsSpan();
+        int index = 0;
         while (index < span.Length)
         {
             if (char.IsWhiteSpace(span[index]))
@@ -48,15 +48,15 @@ public sealed class InfixTokenizer
             return false;
         }
 
-        var start = index;
+        int start = index;
         index++;
         while (index < span.Length && (char.IsDigit(span[index]) || span[index] == '.'))
         {
             index++;
         }
 
-        var literal = span[start..index].ToString();
-        if (!decimal.TryParse(literal, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
+        string literal = span[start..index].ToString();
+        if (!decimal.TryParse(literal, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal value))
         {
             throw new TokenizationException($"Invalid numeric literal '{literal}'.");
         }
@@ -67,7 +67,7 @@ public sealed class InfixTokenizer
 
     private static bool TryReadParenthesis(ReadOnlySpan<char> span, ref int index, ICollection<Token> target)
     {
-        var ch = span[index];
+        char ch = span[index];
         if (ch != '(' && ch != ')')
         {
             return false;
@@ -80,13 +80,13 @@ public sealed class InfixTokenizer
 
     private static bool TryReadOperator(ReadOnlySpan<char> span, ref int index, IList<Token> target)
     {
-        var symbol = span[index].ToString();
+        string symbol = span[index].ToString();
         if (!OperatorCatalog.IsOperator(span[index]))
         {
             return false;
         }
 
-        var isUnary = IsUnary(target);
+        bool isUnary = IsUnary(target);
         target.Add(isUnary ? OperatorCatalog.GetUnary(symbol) : OperatorCatalog.GetBinary(symbol));
         index++;
         return true;
@@ -99,7 +99,7 @@ public sealed class InfixTokenizer
             return true;
         }
 
-        var previous = tokens[^1];
+        Token previous = tokens[^1];
         if (previous is Parenthesis paren && paren.IsOpening)
         {
             return true;
@@ -112,8 +112,8 @@ public sealed class InfixTokenizer
 
     private static void EnsureBalance(IReadOnlyCollection<Token> tokens)
     {
-        var depth = 0;
-        foreach (var token in tokens)
+        int depth = 0;
+        foreach (Token token in tokens)
         {
             depth = UpdateDepth(token, depth);
             if (depth < 0)

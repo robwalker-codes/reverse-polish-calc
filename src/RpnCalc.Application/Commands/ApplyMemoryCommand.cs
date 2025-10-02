@@ -30,8 +30,8 @@ public sealed class ApplyMemoryCommandHandler
             throw new ArgumentException("Session id is required.", nameof(command));
         }
 
-        var register = _memoryStore.GetOrCreate(command.SessionId);
-        var result = Execute(command, register);
+        MemoryRegister register = _memoryStore.GetOrCreate(command.SessionId);
+        MemoryRegister result = Execute(command, register);
         Persist(command, result);
         return result.Value;
     }

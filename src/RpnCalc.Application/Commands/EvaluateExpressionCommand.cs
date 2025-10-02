@@ -32,8 +32,8 @@ public sealed class EvaluateExpressionCommandHandler
             throw new ArgumentException("Expression is required.", nameof(command));
         }
 
-        var settings = command.Settings ?? CalcSettings.Default;
-        var rpn = CreateRpn(command, settings);
+        CalcSettings settings = command.Settings ?? CalcSettings.Default;
+        RpnExpression rpn = CreateRpn(command, settings);
         return _evaluator.Evaluate(rpn, settings, command.ReturnTrace);
     }
 
@@ -46,15 +46,15 @@ public sealed class EvaluateExpressionCommandHandler
 
     private RpnExpression ConvertFromInfix(string expression, CalcSettings settings)
     {
-        var tokens = _tokenizer.Tokenize(new InfixExpression(expression));
+        IReadOnlyList<Token> tokens = _tokenizer.Tokenize(new InfixExpression(expression));
         return _converter.Convert(tokens);
     }
 
     private static RpnExpression ParseRpn(string expression)
     {
-        var tokens = new List<Token>();
-        var span = expression.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var part in span)
+        List<Token> tokens = new List<Token>();
+        string[] span = expression.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        foreach (string part in span)
         {
             tokens.Add(ParseToken(part));
         }
@@ -64,7 +64,7 @@ public sealed class EvaluateExpressionCommandHandler
 
     private static Token ParseToken(string symbol)
     {
-        if (decimal.TryParse(symbol, NumberStyles.Number, CultureInfo.InvariantCulture, out var value))
+        if (decimal.TryParse(symbol, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal value))
         {
             return new NumberLiteral(value, symbol);
         }

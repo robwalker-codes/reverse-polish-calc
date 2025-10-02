@@ -23,14 +23,14 @@ public sealed class ProcessKeysCommandHandler
 
     public EvaluationResult Handle(ProcessKeysCommand command)
     {
-        var mode = command.Mode == ExpressionMode.Infix ? CalculatorMode.Infix : CalculatorMode.Rpn;
-        var streamResult = _interpreter.Interpret(command.Keys, mode);
+        CalculatorMode mode = command.Mode == ExpressionMode.Infix ? CalculatorMode.Infix : CalculatorMode.Rpn;
+        KeyStreamResult streamResult = _interpreter.Interpret(command.Keys, mode);
         if (string.IsNullOrWhiteSpace(streamResult.Expression))
         {
             return new EvaluationResult(0m, Array.Empty<Token>(), Array.Empty<string>());
         }
 
-        var evaluationCommand = new EvaluateExpressionCommand(streamResult.Expression, command.Mode, command.ReturnTrace, command.Settings);
+        EvaluateExpressionCommand evaluationCommand = new EvaluateExpressionCommand(streamResult.Expression, command.Mode, command.ReturnTrace, command.Settings);
         return _evaluator.Handle(evaluationCommand);
     }
 }

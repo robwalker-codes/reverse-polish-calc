@@ -24,9 +24,9 @@ public sealed class KeyStreamInterpreter
 
     private static KeyStreamResult InterpretInfix(IReadOnlyList<string> keys)
     {
-        var buffer = new StringBuilder();
-        var evaluate = false;
-        foreach (var key in keys)
+        StringBuilder buffer = new StringBuilder();
+        bool evaluate = false;
+        foreach (string key in keys)
         {
             if (HandleControlKey(key, buffer, ref evaluate))
             {
@@ -105,9 +105,9 @@ public sealed class KeyStreamInterpreter
 
     private static KeyStreamResult InterpretRpn(IReadOnlyList<string> keys)
     {
-        var buffer = new List<string>();
-        var evaluate = false;
-        foreach (var key in keys)
+        List<string> buffer = new List<string>();
+        bool evaluate = false;
+        foreach (string key in keys)
         {
             if (key == "CE")
             {
